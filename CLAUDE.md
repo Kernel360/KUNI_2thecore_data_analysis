@@ -39,7 +39,7 @@ Database connection and data loading functionality is centralized in `src/data_l
 
 ## Development Workflow
 
-Since this is a data analysis project without traditional build/test scripts, use these commands:
+Since this is a data analysis project with Flask web server capabilities, use these commands:
 
 ```bash
 # Test database connection and data loading
@@ -48,8 +48,39 @@ python src/data_loader.py
 # Verify environment setup
 python verify_setup.py
 
+# Start Flask web server
+python app.py
+# or
+python run_server.py
+
 # Start Jupyter for analysis
 jupyter lab
+```
+
+## Flask Web Server
+
+The project includes a Flask-based REST API server for data analysis:
+
+- **Main Application**: `app.py` - Core Flask application with REST API endpoints
+- **Server Runner**: `run_server.py` - Development server startup script
+- **Base URL**: `http://localhost:5000`
+
+### API Endpoints
+
+- `GET /` - API information and available endpoints
+- `POST /api/data` - Execute SQL queries and return results as JSON
+- `GET /api/health` - Health check and database connectivity status
+
+### API Usage Example
+
+```bash
+# Health check
+curl http://localhost:5000/api/health
+
+# Execute a query
+curl -X POST http://localhost:5000/api/data \
+  -H "Content-Type: application/json" \
+  -d '{"query": "SELECT * FROM car LIMIT 5;"}'
 ```
 
 ## Key Libraries and Dependencies
@@ -59,5 +90,6 @@ The project includes a full data science stack:
 - **Data Analysis**: pandas, numpy, scipy
 - **Machine Learning**: scikit-learn  
 - **Visualization**: matplotlib, seaborn
+- **Web Server**: Flask, Flask-CORS, Flask-RESTful, Werkzeug
 - **Jupyter**: jupyterlab, ipykernel
 - **Development**: All supporting libraries for data analysis workflows
