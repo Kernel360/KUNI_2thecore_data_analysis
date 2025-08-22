@@ -95,8 +95,8 @@ class RegionClusteringAPI(Resource):
         return create_region_clustering_api()()
 
 api.add_resource(DataAnalysisAPI, '/')
-api.add_resource(PreferenceAnalysisAPI, '/api/analysis/preference-by-period')
-api.add_resource(TrendAnalysisAPI, '/api/analysis/yearly-trend')
+api.add_resource(PreferenceAnalysisAPI, '/api/analysis/period')
+api.add_resource(TrendAnalysisAPI, '/api/analysis/trend')
 api.add_resource(DailyForecastAPI, '/api/forecast/daily')
 api.add_resource(RegionClusteringAPI, '/api/clustering/regions')
 

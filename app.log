@@ -6,3 +6,11 @@
 2025-08-22 19:16:50,418 INFO werkzeug  * Restarting with stat
 2025-08-22 19:17:02,955 WARNING werkzeug  * Debugger is active!
 2025-08-22 19:17:02,961 INFO werkzeug  * Debugger PIN: 602-745-990
+2025-08-22 19:21:28,476 INFO werkzeug  * Detected change in 'C:\\KUNI_2thecore_data_analysis\\app.py', reloading
+2025-08-22 19:21:29,021 INFO werkzeug  * Restarting with stat
+2025-08-22 19:21:33,313 WARNING werkzeug  * Debugger is active!
+2025-08-22 19:21:33,320 INFO werkzeug  * Debugger PIN: 602-745-990
+2025-08-22 19:21:38,635 INFO werkzeug  * Detected change in 'C:\\KUNI_2thecore_data_analysis\\app.py', reloading
+2025-08-22 19:21:39,342 INFO werkzeug  * Restarting with stat
+2025-08-22 19:21:51,212 WARNING werkzeug  * Debugger is active!
+2025-08-22 19:21:51,240 INFO werkzeug  * Debugger PIN: 602-745-990
