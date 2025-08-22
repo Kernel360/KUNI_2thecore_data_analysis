@@ -95,8 +95,6 @@ class RegionClusteringAPI(Resource):
         return create_region_clustering_api()()
 
 api.add_resource(DataAnalysisAPI, '/')
-api.add_resource(DataQueryAPI, '/api/data')
-api.add_resource(HealthCheckAPI, '/api/health')
 api.add_resource(PreferenceAnalysisAPI, '/api/analysis/preference-by-period')
 api.add_resource(TrendAnalysisAPI, '/api/analysis/yearly-trend')
 api.add_resource(DailyForecastAPI, '/api/forecast/daily')

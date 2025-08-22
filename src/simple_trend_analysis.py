@@ -5,8 +5,14 @@ sklearn을 활용한 효율적인 트렌드 분석 및 시각화
 
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
+# matplotlib/seaborn은 지연 로딩 (_get_mpl) 사용
+
+def _get_mpl():
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    plt.rcParams['font.family'] = ['DejaVu Sans', 'Malgun Gothic', 'AppleGothic']
+    plt.rcParams['axes.unicode_minus'] = False
+    return plt, sns
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 from typing import Dict, List, Any, Optional
@@ -15,9 +21,7 @@ import io
 import logging
 from datetime import datetime
 
-# 한글 폰트 설정
-plt.rcParams['font.family'] = ['DejaVu Sans', 'Malgun Gothic', 'AppleGothic']
-plt.rcParams['axes.unicode_minus'] = False
+# 한글 폰트 설정은 _get_mpl 내부에서 지연 설정
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +31,11 @@ class SimpleTrendAnalyzer:
     
     def __init__(self):
         self.brand_colors = {'현대': '#1f77b4', '기아': '#ff7f0e', '제네시스': '#2ca02c'}
+        # 동적 색상 배정용 팔레트 및 캐시 (지연 확장)
+        self.dynamic_colors = {}
+        self.color_palette = ['#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2',
+                              '#7f7f7f', '#bcbd22', '#17becf', '#1f77b4', '#ff7f0e']
+        self.palette_idx = 0
         self.current_year = datetime.now().year
         
     def analyze_yearly_trend(self, start_year: int = 2020, end_year: int = 2025, 
@@ -275,6 +284,7 @@ class SimpleTrendAnalyzer:
     
     def _create_brand_trend_chart(self, brand_trends: Dict[str, Any]) -> str:
         """브랜드별 트렌드 라인 차트"""
+        plt, _ = _get_mpl()
         fig, ax = plt.subplots(figsize=(12, 7))
         
         for brand, data in brand_trends.items():
@@ -282,7 +292,7 @@ class SimpleTrendAnalyzer:
             years = list(yearly_data.keys())
             shares = list(yearly_data.values())
             
-            color = self.brand_colors.get(brand, 'gray')
+            color = self._color_for_brand(brand)
             ax.plot(years, shares, marker='o', linewidth=2.5, markersize=8,
                    label=f"{brand} ({data['trend_direction']})", color=color)
             
@@ -304,6 +314,7 @@ class SimpleTrendAnalyzer:
     
     def _create_model_ranking_chart(self, model_trends: Dict[str, Any]) -> str:
         """모델 랭킹 변화 차트"""
+        plt, _ = _get_mpl()
         fig, ax = plt.subplots(figsize=(12, 8))
         
         # 상위 5개 모델만 표시
@@ -342,6 +353,7 @@ class SimpleTrendAnalyzer:
     
     def _create_car_age_chart(self, car_age_trends: Dict[str, Any]) -> str:
         """차량 연식별 선호도 차트"""
+        plt, _ = _get_mpl()
         fig, ax = plt.subplots(figsize=(10, 6))
         
         age_categories = list(car_age_trends.keys())
@@ -367,13 +379,14 @@ class SimpleTrendAnalyzer:
     
     def _create_market_evolution_chart(self, market_evolution: Dict[str, Any]) -> str:
         """시장 점유율 진화 차트"""
+        plt, _ = _get_mpl()
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
         
         # 1. 변동성 차트
         volatility = market_evolution['volatility']
         brands = list(volatility.keys())
         vol_values = list(volatility.values())
-        colors = [self.brand_colors.get(b, 'gray') for b in brands]
+        colors = [self._color_for_brand(b) for b in brands]
         
         ax1.bar(brands, vol_values, color=colors, alpha=0.7)
         ax1.set_title('브랜드별 시장점유율 변동성')
@@ -398,9 +411,30 @@ class SimpleTrendAnalyzer:
         
         plt.tight_layout()
         return self._fig_to_base64(fig)
+
+    def _color_for_brand(self, brand: str) -> str:
+        if brand in self.brand_colors:
+            return self.brand_colors[brand]
+        if brand in self.dynamic_colors:
+            return self.dynamic_colors[brand]
+        # 팔레트 고갈 시 seaborn 팔레트로 확장
+        if self.palette_idx >= len(self.color_palette):
+            try:
+                plt, _sns = _get_mpl()
+                extra = _sns.color_palette('tab20', n_colors=20).as_hex()
+                for c in extra:
+                    if c not in self.color_palette:
+                        self.color_palette.append(c)
+            except Exception:
+                pass
+        color = self.color_palette[self.palette_idx % len(self.color_palette)]
+        self.palette_idx += 1
+        self.dynamic_colors[brand] = color
+        return color
     
     def _create_trend_summary_chart(self, brand_trends: Dict[str, Any]) -> str:
         """트렌드 요약 차트"""
+        plt, _ = _get_mpl()
         fig, ax = plt.subplots(figsize=(10, 6))
         
         brands = list(brand_trends.keys())
@@ -443,6 +477,7 @@ class SimpleTrendAnalyzer:
     
     def _fig_to_base64(self, fig) -> str:
         """Figure를 base64로 변환"""
+        import matplotlib.pyplot as plt
         buffer = io.BytesIO()
         fig.savefig(buffer, format='png', dpi=100, bbox_inches='tight')
         buffer.seek(0)

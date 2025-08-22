@@ -5,18 +5,19 @@ sklearn을 활용한 간단하고 효율적인 선호도 분석 및 시각화
 
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import chi2_contingency
+from scipy.stats import chi2_contingency
 from typing import Dict, List, Any, Optional
 import base64
 import io
 import logging
 
-# 한글 폰트 설정
-plt.rcParams['font.family'] = ['DejaVu Sans', 'Malgun Gothic', 'AppleGothic']
-plt.rcParams['axes.unicode_minus'] = False
+def _get_mpl():
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    plt.rcParams['font.family'] = ['DejaVu Sans', 'Malgun Gothic', 'AppleGothic']
+    plt.rcParams['axes.unicode_minus'] = False
+    return plt, sns
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,35 @@ class SimplePreferenceAnalyzer:
     
     def __init__(self):
         self.brand_colors = {'현대': '#1f77b4', '기아': '#ff7f0e', '제네시스': '#2ca02c'}
+        self.dynamic_colors = {}
+        # 기본 팔레트(필요 시 확장)
+        self.color_palette = ['#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2',
+                              '#7f7f7f', '#bcbd22', '#17becf', '#1f77b4', '#ff7f0e']
+        self.palette_idx = 0
         self.season_names = {1: '봄', 2: '여름', 3: '가을', 4: '겨울'}
+
+    def _color_for_brand(self, brand: str) -> str:
+        # 사전 지정 색상 우선
+        if brand in self.brand_colors:
+            return self.brand_colors[brand]
+        # 이미 동적으로 배정된 경우 재사용
+        if brand in self.dynamic_colors:
+            return self.dynamic_colors[brand]
+        # 팔레트에서 순환 배정 (부족하면 seaborn 팔레트로 확장 시도)
+        if self.palette_idx >= len(self.color_palette):
+            try:
+                plt, sns = _get_mpl()
+                extra = sns.color_palette('tab20', n_colors=20).as_hex()
+                # 중복 제거 후 확장
+                for c in extra:
+                    if c not in self.color_palette:
+                        self.color_palette.append(c)
+            except Exception:
+                pass
+        color = self.color_palette[self.palette_idx % len(self.color_palette)]
+        self.palette_idx += 1
+        self.dynamic_colors[brand] = color
+        return color
         
     def analyze_preferences(self, year: Optional[str] = None, period_type: str = 'month') -> Dict[str, Any]:
         """메인 분석 함수"""
@@ -122,6 +151,7 @@ class SimplePreferenceAnalyzer:
         period_col = 'month' if period_type == 'month' else 'season'
         crosstab = pd.crosstab(df['brand'], df[period_col], normalize='columns')
         
+        plt, sns = _get_mpl()
         fig, ax = plt.subplots(figsize=(10, 6))
         sns.heatmap(crosstab, annot=True, fmt='.2f', cmap='YlOrRd', ax=ax)
         ax.set_title(f'브랜드별 {period_type} 선호도')
@@ -133,8 +163,9 @@ class SimplePreferenceAnalyzer:
         """브랜드별 시장 점유율 파이차트"""
         brand_counts = df['brand'].value_counts()
         
+        plt, _ = _get_mpl()
         fig, ax = plt.subplots(figsize=(8, 8))
-        colors = [self.brand_colors.get(b, 'gray') for b in brand_counts.index]
+        colors = [self._color_for_brand(b) for b in brand_counts.index]
         
         ax.pie(brand_counts.values, labels=brand_counts.index, autopct='%1.1f%%', 
                colors=colors, startangle=90)
@@ -147,6 +178,7 @@ class SimplePreferenceAnalyzer:
         """브랜드별 기간별 트렌드 라인차트"""
         period_col = 'month' if period_type == 'month' else 'season'
         
+        plt, _ = _get_mpl()
         fig, ax = plt.subplots(figsize=(10, 6))
         
         for brand in df['brand'].unique():
@@ -159,7 +191,7 @@ class SimplePreferenceAnalyzer:
             
             ax.plot(period_counts.index, period_counts.values, 
                    marker='o', label=brand, linewidth=2,
-                   color=self.brand_colors.get(brand, 'gray'))
+                   color=self._color_for_brand(brand))
         
         ax.set_title(f'브랜드별 {period_type} 트렌드')
         ax.set_xlabel('기간')
@@ -183,15 +215,17 @@ class SimplePreferenceAnalyzer:
                 seasonality_scores[brand] = cv
         
         if not seasonality_scores:
+            plt, _ = _get_mpl()
             fig, ax = plt.subplots(figsize=(8, 4))
             ax.text(0.5, 0.5, '계절성 데이터 부족', ha='center', va='center')
             return self._fig_to_base64(fig)
         
+        plt, _ = _get_mpl()
         fig, ax = plt.subplots(figsize=(8, 5))
         
         brands = list(seasonality_scores.keys())
         scores = list(seasonality_scores.values())
-        colors = [self.brand_colors.get(b, 'gray') for b in brands]
+        colors = [self._color_for_brand(b) for b in brands]
         
         bars = ax.bar(brands, scores, color=colors, alpha=0.7)
         
@@ -214,6 +248,7 @@ class SimplePreferenceAnalyzer:
         # 카이제곱 검정
         chi2, p_value, dof, expected = chi2_contingency(crosstab)
         
+        plt, sns = _get_mpl()
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
         
         # 관측값
@@ -233,6 +268,7 @@ class SimplePreferenceAnalyzer:
     
     def _fig_to_base64(self, fig) -> str:
         """Figure를 base64로 변환"""
+        import matplotlib.pyplot as plt
         buffer = io.BytesIO()
         fig.savefig(buffer, format='png', dpi=100, bbox_inches='tight')
         buffer.seek(0)
