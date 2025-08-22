@@ -135,26 +135,50 @@ class HealthCheckAPI(Resource):
 class PreferenceAnalysisAPI(Resource):
     @swag_from({'responses': {200: {'description': '선호도 분석 결과 반환'}}})
     def get(self):
-        return create_simple_preference_api()()
+        from src.simple_preference_analysis import SimplePreferenceAnalyzer
+        analyzer = SimplePreferenceAnalyzer()
+        year = request.args.get('year')
+        period_type = request.args.get('period_type', 'month')
+        result = analyzer.analyze_preferences(year, period_type)
+        return result
 
 
 # 간소화된 트렌드 분석 API 클래스  
 class TrendAnalysisAPI(Resource):
     @swag_from({'responses': {200: {'description': '연도별 트렌드 분석 결과 반환'}}})
     def get(self):
-        return create_simple_trend_api()()
+        from src.simple_trend_analysis import SimpleTrendAnalyzer
+        analyzer = SimpleTrendAnalyzer()
+        start_year = int(request.args.get('start_year', 2020))
+        end_year = int(request.args.get('end_year', 2025))
+        top_n = int(request.args.get('top_n', 5))
+        result = analyzer.analyze_yearly_trend(start_year, end_year, top_n)
+        return result
 
 
 class DailyForecastAPI(Resource):
     @swag_from({'responses': {200: {'description': '일일 예측 결과 반환'}}})
     def get(self):
-        return create_daily_forecast_api()()
+        from src.services.daily_forecast import DailyForecastAnalyzer
+        analyzer = DailyForecastAnalyzer()
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        forecast_days = int(request.args.get('forecast_days', 7))
+        result = analyzer.analyze(start_date, end_date, forecast_days)
+        return result
 
 
 class RegionClusteringAPI(Resource):
     @swag_from({'responses': {200: {'description': '지역 군집화 결과 반환'}}})
     def get(self):
-        return create_region_clustering_api()()
+        from src.services.region_clustering import RegionClusteringAnalyzer
+        analyzer = RegionClusteringAnalyzer()
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        k = int(request.args.get('k', 5))
+        use_end_points = request.args.get('use_end_points', 'true').lower() == 'true'
+        result = analyzer.analyze(start_date, end_date, k, use_end_points)
+        return result
 
 
 # 엔드포인트 등록
