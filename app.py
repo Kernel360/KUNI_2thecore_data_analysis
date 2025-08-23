@@ -3,6 +3,7 @@ import logging
 from flask_cors import CORS
 from flask_restful import Api, Resource
 import json
+from sqlalchemy import text
 from src.data_loader import get_data_from_db, get_db_connection
 from src.simple_preference_analysis import create_simple_preference_api
 from src.simple_trend_analysis import create_simple_trend_api
@@ -117,7 +118,7 @@ class HealthCheckAPI(Resource):
         try:
             engine = get_db_connection()
             with engine.connect() as connection:
-                connection.execute("SELECT 1")
+                connection.execute(text("SELECT 1"))
             return {
                 "status": "healthy",
                 "database": "connected",
